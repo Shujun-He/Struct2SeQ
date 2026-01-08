@@ -129,9 +129,21 @@ for i in tqdm(range(n_test)):
     ct=torch.tensor(ct).cuda()
     # print(ct.shape)
     # exit()
-    sequence1=generate_sequence_batched(policy_network,src,[test_correspondences[i]]*repeat,ct,p=0.05)
-    sequence2=generate_sequence_batched(policy_network,src,[test_correspondences[i]]*repeat,ct,p=0.1)
-    sequence3=generate_sequence_batched_sample(policy_network,src,[test_correspondences[i]]*repeat,ct,p=1)
+
+    wildtype_sequence=test_df['wild_type_sequence'][i]
+
+    #randomly pick up bias between 0.75 to 1.0
+    up_bias = np.random.uniform(0.75,1.0)
+    print(f"up bias: {up_bias}")
+    weight, bias = make_ref_upweighted_params(wildtype_sequence, up_bias=up_bias)
+    weight=weight.cuda()
+    bias=bias.cuda()
+    # print(weight.shape, bias.shape)
+    # exit()
+
+    sequence1=generate_sequence_batched(policy_network,src,[test_correspondences[i]]*repeat,ct,p=0.05, weight=weight, bias=bias)
+    sequence2=generate_sequence_batched(policy_network,src,[test_correspondences[i]]*repeat,ct,p=0.1, weight=weight, bias=bias)
+    sequence3=generate_sequence_batched_sample(policy_network,src,[test_correspondences[i]]*repeat,ct,p=1, weight=weight, bias=bias)
     #sequence4=generate_sequence_batched_sample(policy_network,src,[test_correspondences[i]]*repeat,ct,p=1)
     # if args.gpu_id=='0':
     #     topk_sequence=generate_sequence_topk(policy_network,src[0,None],[test_correspondences[i]]*repeat,ct[0,None],k=repeat)

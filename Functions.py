@@ -312,7 +312,7 @@ def jaccard_similarity_base_pairs(bp_set1, bp_set2):
 # bp_set2 = [[16, 43], [17, 44], [18, 41], [19, 42], [20, 39], [21, 40], [22, 37], [23, 38], [26, 35], [27, 34]]
 
 
-def generate_sequence_batched(model, src, target_correspondence, ct_matrix, start_token=4, p=0.1, max_len=None):
+def generate_sequence_batched(model, src, target_correspondence, ct_matrix, start_token=4, p=0.1, max_len=None, weight=None, bias=None):
     _, seq_len = src.shape
     batch_size = len(target_correspondence)
     model.eval()
@@ -335,6 +335,12 @@ def generate_sequence_batched(model, src, target_correspondence, ct_matrix, star
                                                         tgt_mask=tgt_mask, use_cache=True)
             values = out[:, -1, :]
 
+            if weight is not None:
+                values = values * weight[position][None]
+            if bias is not None:
+                values = values + bias[position][None]
+            # print(values.shape)
+            # exit()
             # Apply base pair constraints
             mask = create_base_pair_mask_batched(position, target_correspondence, outputs, A_cnt, max_len)
             masked_values = values.masked_fill(mask, float('-inf'))
@@ -356,11 +362,32 @@ def generate_sequence_batched(model, src, target_correspondence, ct_matrix, star
 
             A_cnt = A_cnt + (next_tokens.squeeze()==0).cpu().float().numpy()
             tgt = torch.cat([tgt, next_tokens], dim=1)
-    
+    #exit()
     return outputs[:, 1:]#, total_values  # Remove start token
 
+def make_ref_upweighted_params(ref_seq, upweight=1.0, base_weight=1.0, 
+                               base_bias=0.0, up_bias=1.0):
+    """
+    Return weight[L,4] and bias[L,4] where the reference nucleotide at each position
+    gets upweighted and up-biased.
+    """
+    mapping = {'A':0, 'C':1, 'G':2, 'U':3}
+    L = len(ref_seq)
 
-def generate_sequence_batched_sample(model, src, target_correspondence, ct_matrix, start_token=4, p=1.0, max_len=None):
+    # initialize
+    weight = torch.full((L, 4), base_weight)
+    bias   = torch.full((L, 4), base_bias)
+
+    # upweight the correct nucleotide at each position
+    for i, nt in enumerate(ref_seq):
+        idx = mapping[nt]
+        weight[i, idx] = upweight
+        bias[i, idx]   = up_bias
+
+    return weight, bias
+
+
+def generate_sequence_batched_sample(model, src, target_correspondence, ct_matrix, start_token=4, p=1.0, max_len=None, weight=None, bias=None):
     _, seq_len = src.shape
     batch_size = len(target_correspondence)
     model.eval()
@@ -382,6 +409,10 @@ def generate_sequence_batched_sample(model, src, target_correspondence, ct_matri
                                                         past_key_values = past_key_values,
                                                         tgt_mask=tgt_mask, use_cache=True)
             values = out[:, -1, :]
+            if weight is not None:
+                values = values * weight[position][None]
+            if bias is not None:
+                values = values + bias[position][None]
 
             # Apply base pair constraints
             mask = create_base_pair_mask_batched(position, target_correspondence, outputs, A_cnt, max_len)

@@ -3,7 +3,7 @@ import os
 
 os.system("mkdir -p scripts_generate_replicase")
 
-n_gpus = 8
+n_gpus = 10
 n_runs = 24*60
 
 scripts={i:'' for i in range(n_gpus)}
