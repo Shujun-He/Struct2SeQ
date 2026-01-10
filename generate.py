@@ -16,6 +16,12 @@ parser.add_argument('--n_structures', type=int, default=100)
 parser.add_argument('--target_df', type=str, required=True, help='Path to the target CSV file which has Title and Dot-bracket columns')
 parser.add_argument('--out_folder', type=str, default='results', help='Output folder to save results')
 parser.add_argument('--output_csv', type=str, required=True, help='Path to save the output CSV file', default='output.csv')
+parser.add_argument('--up_bias', type=float, required=True, help='how much to bias generation towards WT sequence')
+parser.add_argument('--weights_path', type=str, required=True, help='weights of Struct2SeQ model')
+parser.add_argument('--rnet_weights', type=str, required=True, help='weights of rnet model')
+parser.add_argument('--rnet_ss_weights', type=str, required=True, help='weights of rnet-ss model')
+
+
 args = parser.parse_args()
 
 start_time = time.time()
@@ -45,7 +51,7 @@ delete_modules(policy_network)
 
 
 from Env import DQN_env
-env=DQN_env()
+env=DQN_env(args.rnet_weights,args.rnet_ss_weights)
 
 
 p=0.1
@@ -71,7 +77,7 @@ import torch.nn.functional as F
 
 
 
-policy_network.load_state_dict(torch.load("policy_network.pt"))
+policy_network.load_state_dict(torch.load(args.weights_path))
 
 
 
@@ -133,9 +139,9 @@ for i in tqdm(range(n_test)):
     wildtype_sequence=test_df['wild_type_sequence'][i]
 
     #randomly pick up bias between 0.75 to 1.0
-    up_bias = np.random.uniform(0.75,1.0)
-    print(f"up bias: {up_bias}")
-    weight, bias = make_ref_upweighted_params(wildtype_sequence, up_bias=up_bias)
+    #up_bias = np.random.uniform(0.75,1.0)
+    print(f"up bias: {args.up_bias}")
+    weight, bias = make_ref_upweighted_params(wildtype_sequence, up_bias=args.up_bias)
     weight=weight.cuda()
     bias=bias.cuda()
     # print(weight.shape, bias.shape)
@@ -259,7 +265,7 @@ for i in tqdm(range(n_test)):
     print(test_df["wild_type_sequence"][i])
     print(best_sequence)
     #break
-print("AVG jaccrd",np.mean(np.array(jacc)))
+print("best jaccrd",np.mean(np.array(jacc)))
 solved=(np.array(jacc)==1.0).sum()
 print(f"{solved}/{len(jacc)} solved")
 

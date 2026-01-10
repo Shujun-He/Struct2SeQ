@@ -61,13 +61,13 @@ class finetuned_RibonanzaNet(RibonanzaNet):
         return output.squeeze(-1)
     
 class DQN_env:
-    def __init__(self,use_gpu=True,compile=False):
+    def __init__(self,rnet_weights,rnet_ss_weights,use_gpu=True,compile=False,):
 
         model=finetuned_RibonanzaNet(load_config_from_yaml("test10_configs/pairwise.yaml"))#.cuda()
-        model.load_state_dict(torch.load("../weights/RibonanzaNet-SS.pt",map_location='cpu'))
+        model.load_state_dict(torch.load(rnet_ss_weights,map_location='cpu'))
 
         reactivity_model=RibonanzaNet(load_config_from_yaml("test10_configs/pairwise.yaml"))
-        reactivity_model.load_state_dict(torch.load("../weights/RibonanzaNet.pt",map_location='cpu'))
+        reactivity_model.load_state_dict(torch.load(rnet_weights,map_location='cpu'))
 
         self.SS_model=model
         
