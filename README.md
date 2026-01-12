@@ -57,27 +57,91 @@ tqdm
 - `search_v2` - Sequence generation and search algorithms
 - `Env` - Environment wrapper (DQN_env) with RibonanzaNet integration
 
-### Pre-trained Model
-- `policy_network.pt` - Trained Q-network weights (required for inference)
 
-## Installation
+
+## Installation and run instructions
 
 1. Clone the repository
-2. Install dependencies: `pip install torch polars numpy matplotlib tqdm`
-3. Ensure the trained model `policy_network.pt` is in the working directory
-4. Verify all custom modules are available
+git clone https://github.com/Shujun-He/Struct2SeQ
+cd Struct2SeQ
 
-## Usage
+2. Download model weights (via Kaggle)
 
-### Basic Command
+Make sure you have the Kaggle CLI configured (~/.kaggle/kaggle.json).
+```
+kaggle datasets download -d shujun717/struct2seq-weights
+kaggle datasets download -d shujun717/ribonanzanet-weights
+```
 
-```bash
-python inference.py \
-    --target_df input_structures.csv \
+Unzip the downloaded files:
+
+```
+unzip struct2seq-weights.zip
+unzip ribonanzanet-weights.zip
+```
+
+This should produce the following key files:
+
+```
+Struct2SeQ.pt
+Struct2SeQ_SHAPE.pt
+RibonanzaNet.pt
+RibonanzaNet-SS.pt
+```
+
+3. Create and activate the Conda environment
+```
+conda create -n struct2seq python=3.11
+conda activate struct2seq
+conda install pip
+```
+
+Install required Python dependencies:
+
+```
+pip install \
+    torch \
+    polars \
+    numpy \
+    matplotlib \
+    tqdm \
+    arnie==0.1.9 \
+    PyYAML \
+    pandas \
+    einops
+```
+
+alternatively use ```requirements.txt```
+
+```
+pip install -r requirements.txt
+```
+
+4. Initialize a dummy Arnie configuration
+
+Struct2SeQ relies on Arnie for RNA folding backends.
+Run the following to create a minimal working configuration:
+
+```
+python make_dummy_arnie.py
+```
+
+5. Run sequence generation
+
+This command generates RNA sequences conditioned on the provided target structure.
+Execution should take a few minutes on a GPU.
+
+```
+python generate.py \
+    --target_df example_targets/RNA_replicase_target.csv \
     --output_csv results.csv \
     --out_folder output_results \
     --gpu_id 0 \
-    --n_structures 100
+    --n_structures 100 \
+    --up_bias 0.0 \
+    --weights_path Struct2SeQ_SHAPE.pt \
+    --rnet_weights RibonanzaNet.pt \
+    --rnet_ss_weights RibonanzaNet-SS.pt
 ```
 
 ### Required Arguments
@@ -85,6 +149,8 @@ python inference.py \
 - `--target_df`: Path to input CSV file containing target structures
   - Must have columns: `Title`, `Dot-bracket`, `wild_type_sequence`
 - `--output_csv`: Filename for output CSV (default: `output.csv`)
+- `--up_bias`: How much to upweight Wildtype Sequence, should be a value between 0 and 1 where 0 is no upweight and 1 will upweight WT significantly
+
 
 ### Optional Arguments
 
