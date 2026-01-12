@@ -62,8 +62,10 @@ tqdm
 ## Installation and run instructions
 
 1. Clone the repository
+```
 git clone https://github.com/Shujun-He/Struct2SeQ
 cd Struct2SeQ
+```
 
 2. Download model weights (via Kaggle)
 
